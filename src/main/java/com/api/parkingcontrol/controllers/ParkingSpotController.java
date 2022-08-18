@@ -22,21 +22,30 @@ import com.api.parkingcontrol.services.ParkingSpotService;
 @CrossOrigin(origins = "*", maxAge = 3600) // acessar de qualquer fonte
 @RequestMapping("/parking-spot")
 public class ParkingSpotController {
-	
+
 	final ParkingSpotService parkingSpotService;
 
 	public ParkingSpotController(ParkingSpotService parkingSpotService) {
 		this.parkingSpotService = parkingSpotService;
 	}
-	
+
 	@PostMapping
-	public ResponseEntity<Object> saveParkingSpot(@RequestBody @Valid ParkingSpotDto parkingSpotDto){
-		
+	public ResponseEntity<Object> saveParkingSpot(@RequestBody @Valid ParkingSpotDto parkingSpotDto) {
+		if (parkingSpotService.existsByLicensePlateCar(parkingSpotDto.getLicensePlateCar())) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body("Conflict: License Plate Car is already in use!");
+		}
+		if (parkingSpotService.existsByParkingSpotNumber(parkingSpotDto.getParkingSpotNumber())) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body("Conflict: Parking Spot is already in use!");
+		}
+		if (parkingSpotService.existsByApartmentAndBlock(parkingSpotDto.getApartment(), parkingSpotDto.getBlock())) {
+			return ResponseEntity.status(HttpStatus.CONFLICT)
+					.body("Conflict: Parking Spot already registered for this apartment/block!");
+		}
+
 		var parkingSpotModel = new ParkingSpotModel();
 		BeanUtils.copyProperties(parkingSpotDto, parkingSpotModel);
 		parkingSpotModel.setRegistrationDate(LocalDateTime.now(ZoneId.of("UTC")));
 		return ResponseEntity.status(HttpStatus.CREATED).body(parkingSpotService.save(parkingSpotModel));
 	}
-	
-	
+
 }
